@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BIOSPHERE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    @font-face { font-family: 'Prima'; src: url('Prima.ttf') format('truetype'); font-weight: normal; font-style: normal; }
+    :root {
+      --white: #ffffff; --cream: #f4f2ee; --warm-gray: #e8e4de;
+      --mid-gray: #b0a99f; --dark: #012e54; --accent: #b84a1e;
+      --serif: 'Prima', 'Playfair Display', Georgia, serif;
+      --sans: 'Playfair Display', Georgia, serif;
+    }
+    html { scroll-behavior: auto; }
+    body { background: var(--white); color: var(--dark); font-family: var(--sans); font-weight: 400; line-height: 1.6; overflow-x: hidden; }
+
+    /* ── CURSOR ── */
+    @media (pointer: fine) {
+      body.custom-cursor-active { cursor: none; }
+      body.custom-cursor-active a, body.custom-cursor-active button,
+      body.custom-cursor-active [data-src], body.custom-cursor-active .masonry-item,
+      body.custom-cursor-active .photo-masonry-item, body.custom-cursor-active .print-item { cursor: none; }
+      .cursor-dot {
+        position: fixed; width: 10px; height: 10px; background: var(--accent);
+        border-radius: 50%; pointer-events: none; z-index: 10040; left: 0; top: 0;
+        transition: width .25s, height .25s, background .25s; mix-blend-mode: multiply; display: none;
+      }
+      .cursor-ring {
+        position: fixed; width: 44px; height: 44px; border: 1px solid rgba(184,74,30,0.4);
+        border-radius: 50%; pointer-events: none; z-index: 10039; left: 0; top: 0;
+        transition: width .35s, height .35s, opacity .35s, border-color .35s; display: none;
+      }
+      .cursor-cross {
+        position: fixed; pointer-events: none; z-index: 10038; left: 0; top: 0;
+        opacity: 0; transition: opacity .25s; display: none;
+      }
+      .cursor-cross::before, .cursor-cross::after { content: ''; position: absolute; background: rgba(1,46,84,0.3); }
+      .cursor-cross::before { width: 1px; height: 50px; left: 0; top: -25px; }
+      .cursor-cross::after { width: 50px; height: 1px; left: -25px; top: 0; }
+      body.custom-cursor-active .cursor-dot,
+      body.custom-cursor-active .cursor-ring,
+      body.custom-cursor-active .cursor-cross { display: block; }
+      body.custom-cursor-active.cursor-photo .cursor-dot { width: 10px; height: 10px; background: white; mix-blend-mode: difference; }
+      body.custom-cursor-active.cursor-photo .cursor-ring { opacity: 0 !important; width: 0; height: 0; }
+      body.custom-cursor-active.cursor-photo .cursor-cross { opacity: 0 !important; }
+      body.custom-cursor-active:has(a:hover) .cursor-dot,
+      body.custom-cursor-active:has(button:hover) .cursor-dot { width: 6px; height: 6px; }
+      body.custom-cursor-active:has(a:hover) .cursor-ring,
+      body.custom-cursor-active:has(button:hover) .cursor-ring { width: 58px; height: 58px; opacity: .2; }
+      body.custom-cursor-active.home-active:has(nav a:hover) .cursor-dot,
+      body.custom-cursor-active.home-active:has(nav button:hover) .cursor-dot,
+      body.custom-cursor-active.home-active:has(.nav-logo-btn:hover) .cursor-dot { width: 6px; height: 6px; background: var(--accent); mix-blend-mode: multiply; }
+      body.custom-cursor-active.home-active:has(nav a:hover) .cursor-ring,
+      body.custom-cursor-active.home-active:has(nav button:hover) .cursor-ring,
+      body.custom-cursor-active.home-active:has(.nav-logo-btn:hover) .cursor-ring { width: 58px; height: 58px; opacity: .2; border-color: rgba(184,74,30,0.4); display: block; }
+      body.custom-cursor-active.home-active:has(nav a:hover) .cursor-cross,
+      body.custom-cursor-active.home-active:has(nav button:hover) .cursor-cross,
+      body.custom-cursor-active.home-active:has(.nav-logo-btn:hover) .cursor-cross { opacity: 0 !important; }
+      body.custom-cursor-active.home-active:has(.hero-cta:hover) .cursor-dot { width: 8px; height: 8px; background: var(--accent); mix-blend-mode: multiply; }
+      body.custom-cursor-active.home-active:has(.hero-cta:hover) .cursor-ring { width: 44px; height: 44px; opacity: .35; border-color: rgba(184,74,30,0.4); display: block; }
+      body.custom-cursor-active.home-active:has(.hero-cta:hover) .cursor-cross { opacity: 0 !important; }
+      .trail-img {
+        position: fixed; pointer-events: none; z-index: 9000; width: 220px; height: 290px;
+        object-fit: cover; opacity: 0; left: 0; top: 0;
+        transition: opacity 2.8s ease; box-shadow: 0 12px 48px rgba(1,46,84,0.2); will-change: transform, opacity;
+      }
+      .trail-img.visible { opacity: 1; }
+      body.custom-cursor-active.lightbox-open .cursor-dot { width: 10px; height: 10px; background: white; mix-blend-mode: normal; }
+      body.custom-cursor-active.lightbox-open .cursor-ring { border-color: rgba(255,255,255,0.35); width: 44px; height: 44px; opacity: 1; }
+    }
+
+    /* ── PAGES ── */
+    .page { display: none; min-height: 100vh; pointer-events: none; }
+    .page.active { display: block; animation: fadeIn 0.35s ease; pointer-events: auto; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* ── NAV ── */
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 10020; display: flex; align-items: center; justify-content: space-between; padding: 16px 48px; background: #ffffff; }
+    .nav-logo-btn { background: none; border: none; padding: 0; cursor: pointer; display: flex; align-items: center; }
+    .nav-logo-img { height: 42px; width: auto; transition: opacity 0.2s; display: block; }
+    .nav-logo-btn:hover .nav-logo-img { opacity: 0.8; }
+    .nav-links { display: flex; gap: 32px; list-style: none; }
+    .nav-links a, .nav-links button { font-family: var(--sans); font-size: 0.65rem; font-weight: 400; letter-spacing: 0.16em; text-transform: lowercase; color: var(--mid-gray); text-decoration: none; cursor: pointer; padding-bottom: 2px; background: none; border: none; border-bottom: 1px solid transparent; transition: color 0.2s, border-color 0.2s; }
+    .nav-links a:hover, .nav-links a.active, .nav-links button:hover, .nav-links button.active { color: var(--dark); border-bottom-color: var(--dark); }
+
+    /* ── PAGE HEADER ── */
+    .page-header { padding: 140px 48px 60px; border-bottom: 1px solid var(--warm-gray); margin-bottom: 72px; display: flex; align-items: flex-end; justify-content: space-between; }
+    .page-header-title { font-family: var(--serif); font-size: clamp(3rem, 6vw, 5.5rem); font-weight: 400; line-height: 1.0; text-transform: lowercase; }
+    .page-header-title em { font-style: italic; color: var(--accent); }
+    .page-header-desc { max-width: 360px; font-family: var(--sans); font-size: 0.88rem; color: #3a5570; line-height: 1.75; text-align: right; }
+
+    /* ── SUB-NAV ── */
+    .sub-nav { display: flex; justify-content: center; padding: 0 48px; margin-bottom: 56px; border-bottom: 1px solid var(--warm-gray); overflow-x: auto; }
+    .sub-nav-btn { font-family: var(--sans); font-size: 0.65rem; font-weight: 400; letter-spacing: 0.14em; text-transform: lowercase; color: var(--mid-gray); background: none; border: none; padding: 0 0 16px 0; margin: 0 16px; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: color 0.2s, border-color 0.2s; position: relative; top: 1px; }
+    .sub-nav-btn:hover { color: var(--dark); }
+    .sub-nav-btn.active { color: var(--dark); border-bottom-color: var(--accent); }
+    .sub-page { display: none; }
+    .sub-page.active { display: block; animation: fadeIn 0.4s ease; }
+    /* hide broken images without inline JS */
+    img { min-height: 1px; }
+    img[src=""], img:not([src]) { opacity: 0; }
+
+    /* ── HOME ── */
+    .home-fullscreen { position: relative; width: 100%; height: 100vh; min-height: 600px; overflow: hidden; }
+    .home-fullscreen img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
+    .home-cta-overlay { position: absolute; bottom: 48px; right: 48px; z-index: 10020; }
+    .hero-cta { display: inline-flex; align-items: center; gap: 12px; font-family: var(--sans); font-size: 0.65rem; letter-spacing: 0.18em; text-transform: lowercase; color: var(--dark); cursor: pointer; text-decoration: none; background: rgba(255,255,255,0.88); backdrop-filter: blur(6px); padding: 14px 24px; border: 1px solid rgba(1,46,84,0.15); transition: gap 0.3s ease; position: relative; z-index: 10020; }
+    .hero-cta:hover { gap: 20px; }
+    .hero-cta::after { content: '→'; font-size: 0.9rem; }
+
+    /* ── MASONRY ── */
+    .masonry { columns: 3; column-gap: 12px; padding: 0 48px; }
+    .masonry-item { break-inside: avoid; margin-bottom: 12px; overflow: hidden; position: relative; background: var(--cream); cursor: pointer; }
+    .masonry-item img { width: 100%; display: block; object-fit: contain; }
+    .photo-masonry { columns: 3; column-gap: 10px; padding: 0 48px 80px; }
+    .photo-masonry-item { break-inside: avoid; margin-bottom: 10px; overflow: hidden; position: relative; background: var(--cream); cursor: pointer; }
+    .photo-masonry-item img { width: 100%; display: block; }
+
+    /* ── VIDEO ── */
+    .video-list { padding: 0 48px 80px; display: flex; flex-direction: column; gap: 80px; }
+    .video-row { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+    .video-row.text-right .video-embed-wrap { order: 1; } .video-row.text-right .video-text { order: 2; }
+    .video-row.text-left .video-embed-wrap { order: 2; } .video-row.text-left .video-text { order: 1; }
+    .video-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .video-embed-wrap { position: relative; padding-bottom: 56.25%; background: var(--cream); overflow: hidden; }
+    .video-embed-wrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
+    .video-text { display: flex; flex-direction: column; justify-content: center; gap: 16px; }
+    .video-text-num { font-family: var(--serif); font-size: 0.75rem; font-style: italic; color: var(--mid-gray); letter-spacing: 0.1em; }
+    .video-text-title { font-family: var(--serif); font-size: clamp(1.4rem, 2.2vw, 2rem); font-weight: 400; line-height: 1.2; color: var(--dark); text-transform: lowercase; }
+    .video-text-meta { font-family: var(--sans); font-size: 0.78rem; color: #3a5570; line-height: 1.7; font-style: italic; }
+    .video-text-divider { width: 32px; height: 1px; background: var(--accent); margin: 4px 0; }
+
+    /* ── PRINT ── */
+    .print-grid { display: flex; flex-direction: column; gap: 0; padding: 0 0 100px; }
+    .print-item { position: relative; width: 100%; overflow: hidden; background: var(--cream); cursor: pointer; }
+    .print-item img { width: 100%; height: auto; display: block; object-fit: contain; transition: transform 0.7s; }
+    .print-item:hover img { transform: scale(1.02); }
+    .print-placeholder { width: 100%; padding: 80px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: var(--cream); cursor: default; }
+    .print-placeholder-num { font-family: var(--serif); font-size: 1.4rem; font-style: italic; color: var(--warm-gray); }
+    .print-placeholder-hint { font-family: var(--sans); font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--warm-gray); }
+
+    /* ── TESTIMONIALS ── */
+    .testimonials-section { padding: 80px 48px 100px; background: var(--cream); border-top: 1px solid var(--warm-gray); }
+    .testimonials-label { font-family: var(--sans); font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--mid-gray); margin-bottom: 48px; }
+    .testimonials-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+    .testimonial { border-left: 2px solid var(--accent); padding-left: 24px; }
+    .testimonial-quote { font-family: var(--serif); font-size: clamp(1rem, 1.6vw, 1.15rem); font-style: italic; line-height: 1.7; color: var(--dark); margin-bottom: 20px; }
+    .testimonial-quote::before { content: '\201C'; } .testimonial-quote::after { content: '\201D'; }
+    .testimonial-source { font-family: var(--sans); font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--mid-gray); }
+
+    /* ── CLIENTS ── */
+    .clients-section { padding: 80px 48px 100px; border-top: 1px solid var(--warm-gray); background: #ffffff; }
+    .clients-label { font-family: var(--sans); font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--mid-gray); margin-bottom: 48px; }
+    .clients-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 28px 20px; align-items: center; }
+    .client-item { display: flex; align-items: center; justify-content: center; text-decoration: none; background: #ffffff; padding: 12px; opacity: 1; filter: grayscale(0%); transition: opacity 0.25s, transform 0.25s, filter 0.25s; }
+    .client-item:hover { opacity: 0.55; filter: grayscale(100%); transform: scale(1.04); }
+    .client-item img { width: 100%; max-width: 330px; height: 156px; object-fit: contain; display: block; }
+    .client-fallback { display: none; font-family: var(--sans); font-size: 0.55rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mid-gray); text-align: center; padding: 4px; }
+
+    /* ── ABOUT ── */
+    .about-section { padding: 120px 48px; display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start; }
+    .about-image { position: sticky; top: 100px; display: flex; justify-content: center; align-items: flex-start; }
+    .about-image-inner { background: var(--cream); overflow: hidden; max-width: 380px; width: 100%; }
+    .about-image-inner img { width: 100%; display: block; transition: transform 0.6s; }
+    .about-image-inner:hover img { transform: scale(1.03); }
+    .about-content { padding-top: 12px; }
+    .about-eyebrow { font-family: var(--sans); font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--mid-gray); margin-bottom: 28px; }
+    .about-heading { font-family: var(--serif); font-size: clamp(1.8rem, 3.2vw, 2.8rem); font-weight: 400; line-height: 1.15; margin-bottom: 32px; text-transform: lowercase; }
+    .about-heading em { font-style: italic; color: var(--accent); }
+    .about-body { font-family: var(--sans); font-size: 0.88rem; color: #2a4a6a; line-height: 1.85; margin-bottom: 20px; }
+
+    /* ── CONTACT ── */
+    .contact-section { background: var(--dark); color: var(--white); padding: 100px 48px 56px; display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start; }
+    .contact-heading { font-family: var(--serif); font-size: clamp(2.2rem, 4.5vw, 4rem); font-weight: 400; line-height: 1.1; margin-bottom: 28px; text-transform: lowercase; }
+    .contact-heading em { font-style: italic; color: var(--accent); }
+    .contact-sub { font-family: var(--sans); font-size: 0.85rem; color: var(--mid-gray); line-height: 1.7; margin-bottom: 48px; }
+    .contact-links { display: flex; flex-direction: column; gap: 16px; }
+    .contact-link { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; border-bottom: 1px solid rgba(255,255,255,0.1); font-family: var(--sans); font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.6); text-decoration: none; cursor: pointer; transition: color 0.2s; }
+    .contact-link:hover { color: white; }
+    .contact-link::after { content: '↗'; font-size: 1rem; }
+    .contact-form { display: flex; flex-direction: column; gap: 20px; }
+    .form-group { display: flex; flex-direction: column; gap: 8px; }
+    .form-label { font-family: var(--sans); font-size: 0.58rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--mid-gray); }
+    .form-input, .form-textarea { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: white; font-family: var(--sans); font-size: 0.88rem; padding: 14px 16px; outline: none; transition: border-color 0.2s; resize: none; }
+    .form-input:focus, .form-textarea:focus { border-color: rgba(255,255,255,0.4); }
+    .form-input::placeholder, .form-textarea::placeholder { color: rgba(255,255,255,0.2); }
+    .form-submit { align-self: flex-start; background: none; border: 1px solid rgba(255,255,255,0.3); color: white; font-family: var(--sans); font-size: 0.65rem; letter-spacing: 0.18em; text-transform: uppercase; padding: 16px 36px; cursor: pointer; transition: background 0.3s, border-color 0.3s; }
+    .form-submit:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.6); }
+    .form-submit:disabled { opacity: 0.5; cursor: default; }
+    .form-status { font-family: var(--sans); font-size: 0.75rem; color: rgba(255,255,255,0.6); min-height: 1.2em; }
+
+    /* ── FOOTER ── */
+    footer { background: var(--dark); border-top: 1px solid rgba(255,255,255,0.08); padding: 28px 48px; display: flex; align-items: center; justify-content: space-between; }
+    .footer-copy { font-family: var(--sans); font-size: 0.6rem; letter-spacing: 0.12em; color: rgba(255,255,255,0.25); }
+    .footer-logo { font-family: var(--serif); font-size: 0.95rem; font-style: italic; color: rgba(255,255,255,0.35); }
+
+    /* ── LIGHTBOX ── */
+    .lightbox { display: none; position: fixed; inset: 0; background: rgba(1,46,84,0.96); z-index: 10030; align-items: center; justify-content: center; flex-direction: column; gap: 14px; cursor: none; }
+    .lightbox.open { display: flex; }
+    .lightbox, .lightbox * { cursor: none; }
+    .lightbox img { max-width: 90vw; max-height: 85vh; object-fit: contain; animation: fadeIn 0.3s ease; transition: opacity 0.12s ease; }
+    .lightbox-close { position: absolute; top: 28px; right: 36px; font-family: var(--sans); font-size: 0.62rem; letter-spacing: 0.18em; text-transform: lowercase; color: rgba(255,255,255,0.5); transition: color 0.2s; z-index: 10031; }
+    .lightbox-close:hover { color: white; }
+    .lightbox-cap { font-family: var(--serif); font-style: italic; font-size: 0.85rem; color: rgba(255,255,255,0.4); }
+    .lightbox-arrow { position: absolute; top: 50%; transform: translateY(-50%); background: none; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.6); font-size: 1.2rem; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; transition: color 0.2s, border-color 0.2s; z-index: 10031; }
+    .lightbox-arrow:hover { color: white; border-color: rgba(255,255,255,0.6); }
+    .lightbox-prev { left: 32px; } .lightbox-next { right: 32px; }
+
+    /* ── MOBILE ── */
+    @media (max-width: 768px) {
+      nav { padding: 14px 24px; } .nav-links { gap: 16px; } .nav-links a { font-size: 0.58rem; } .nav-logo-img { height: 30px; }
+      .home-cta-overlay { bottom: 24px; right: 24px; }
+      .masonry { columns: 2; padding: 0 24px; } .photo-masonry { columns: 2; padding: 0 24px 60px; }
+      .video-list { padding: 0 24px 60px; gap: 48px; } .video-row { grid-template-columns: 1fr; gap: 24px; }
+      .video-pair { grid-template-columns: 1fr; gap: 16px; }
+      .video-row.text-left .video-embed-wrap, .video-row.text-right .video-embed-wrap { order: 1; }
+      .video-row.text-left .video-text, .video-row.text-right .video-text { order: 2; }
+      .about-section { grid-template-columns: 1fr; padding: 60px 24px; gap: 40px; } .about-image { position: static; }
+      .contact-section { grid-template-columns: 1fr; padding: 60px 24px; gap: 48px; }
+      .page-header { flex-direction: column; gap: 20px; padding: 120px 24px 48px; } .page-header-desc { text-align: left; max-width: 100%; }
+      .sub-nav { padding: 0 24px; }
+      .testimonials-section { padding: 60px 24px 80px; } .testimonials-grid { grid-template-columns: 1fr; gap: 32px; }
+      .clients-section { padding: 60px 24px 80px; } .clients-grid { grid-template-columns: repeat(3, 1fr); gap: 18px 12px; }
+      footer { padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="cursor-dot" id="cursorDot"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+<div class="cursor-cross" id="cursorCross"></div>
+
+<!-- NAV -->
+<nav id="mainNav">
+  <button type="button" class="nav-logo-btn" id="nav-home-logo">
+    <img src="biosphere-logo.jpg" alt="BIOSPHERE" class="nav-logo-img" onerror="this.onerror=null;this.src='biosphere-logo.jpg';" />
+  </button>
+  <ul class="nav-links">
+    <li><button type="button" data-page="home" class="active">home</button></li>
+    <li><button type="button" data-page="photography">photography</button></li>
+    <li><button type="button" data-page="videography">videography</button></li>
+    <li><button type="button" data-page="about">about</button></li>
+  </ul>
+</nav>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox">
+  <span class="lightbox-close" id="lightbox-close">close ✕</span>
+  <button type="button" class="lightbox-arrow lightbox-prev" id="lightbox-prev">←</button>
+  <img id="lightboxImg" src="" alt="" />
+  <button type="button" class="lightbox-arrow lightbox-next" id="lightbox-next">→</button>
+  <span class="lightbox-cap" id="lightboxCap"></span>
+</div>
+
+<!-- HOME -->
+<div class="page active" id="page-home">
+  <div class="home-fullscreen">
+    <img src="mission-statement.png" alt="BIOSPHERE" />
+    <div class="home-cta-overlay">
+      <button type="button" class="hero-cta" id="hero-cta-btn">view work</button>
+    </div>
+  </div>
+</div>
+
+<!-- PHOTOGRAPHY -->
+<div class="page" id="page-photography">
+  <div class="page-header">
+    <h1 class="page-header-title">Photo<em>graphy</em></h1>
+    <p class="page-header-desc">From festival grounds to intimate portraits — a record of people, place, and the moments between.</p>
+  </div>
+  <div class="sub-nav" id="photo-sub-nav">
+    <button type="button" class="sub-nav-btn active" data-name="events">events</button>
+    <button type="button" class="sub-nav-btn" data-name="concerts">concerts</button>
+    <button type="button" class="sub-nav-btn" data-name="engagements">engagements</button>
+    <button type="button" class="sub-nav-btn" data-name="portraiture">portraiture</button>
+    <button type="button" class="sub-nav-btn" data-name="fashion">fashion</button>
+    <button type="button" class="sub-nav-btn" data-name="print">print</button>
+  </div>
+  <div class="sub-page active" id="photo-sub-events"><div class="photo-masonry" id="events-masonry"></div></div>
+  <div class="sub-page" id="photo-sub-concerts"><div class="photo-masonry" id="concerts-masonry"></div></div>
+  <div class="sub-page" id="photo-sub-engagements"><div class="photo-masonry" id="engagements-masonry"></div></div>
+  <div class="sub-page" id="photo-sub-portraiture"><div style="padding:0 0 100px"><div class="masonry" id="portrait-masonry"></div></div></div>
+  <div class="sub-page" id="photo-sub-fashion"><div style="padding:0 0 100px"><div class="masonry" id="fashion-masonry"></div></div></div>
+  <div class="sub-page" id="photo-sub-print"><div class="print-grid" id="print-grid"></div></div>
+</div>
+
+<!-- VIDEOGRAPHY -->
+<div class="page" id="page-videography">
+  <div class="page-header">
+    <h1 class="page-header-title">Video<em>graphy</em></h1>
+    <p class="page-header-desc">Films that sit with complexity — exploring ecology, memory, and the human stakes of an unraveling world.</p>
+  </div>
+  <div class="sub-nav" id="video-sub-nav">
+    <button type="button" class="sub-nav-btn active" data-tab="documentary">documentary</button>
+    <button type="button" class="sub-nav-btn" data-tab="experimental">experimental</button>
+  </div>
+  <div id="video-container" style="padding:0 0 80px"></div>
+</div>
+
+<!-- ABOUT -->
+<div class="page" id="page-about">
+  <section class="about-section">
+    <div class="about-image">
+      <div class="about-image-inner"><img src="about.jpeg" alt="Chloe Peterson-Nafziger" /></div>
+    </div>
+    <div class="about-content">
+      <p class="about-eyebrow">About</p>
+      <h2 class="about-heading">Visual storytelling to elevate and empower voices,<br><em>increasing empathy and motivating behavioral change</em></h2>
+      <p class="about-body">BIOSPHERE is a Bay Area-based freelance creative studio run by Chloe Peterson-Nafziger, focused on environmental and human rights storytelling.</p>
+      <p class="about-body">My work translates complex environmental and social justice issues into accessible, emotionally resonant stories. My practice is rooted in expanding empathy, elevating underrepresented voices, and supporting meaningful behavioral and cultural change through visual storytelling.</p>
+      <p class="about-body">I collaborate with environmental and educational nonprofits as well as mission-driven organizations across sectors. Based in San Francisco and working globally, I take on freelance projects in photography, videography, website design, portraiture, and event coverage.</p>
+      <p class="about-body">If you're building work that needs to be seen and felt, I'd love to collaborate.</p>
+      <div style="margin-top:40px;display:flex;flex-wrap:wrap;gap:32px;">
+        <div><p style="font-family:var(--sans);font-size:0.58rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--mid-gray);margin-bottom:6px;">Based in</p><p style="font-family:var(--serif);font-size:1rem;">San Francisco, CA</p></div>
+        <div><p style="font-family:var(--sans);font-size:0.58rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--mid-gray);margin-bottom:6px;">Available for</p><p style="font-family:var(--serif);font-size:1rem;">Global Commissions</p></div>
+        <div><p style="font-family:var(--sans);font-size:0.58rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--mid-gray);margin-bottom:6px;">Since</p><p style="font-family:var(--serif);font-size:1rem;">2017</p></div>
+      </div>
+    </div>
+  </section>
+  <section class="testimonials-section">
+    <p class="testimonials-label">Kind Words</p>
+    <div class="testimonials-grid">
+      <div class="testimonial"><p class="testimonial-quote">Thank you SO much for all your fantastic work on our annual report. We were all gushing over it at our staff meeting this morning — your design so clearly highlighted what is most important to Climate Resilient Communities and captured the heart of our organization.</p><p class="testimonial-source">— Climate Resilient Communities</p></div>
+      <div class="testimonial"><p class="testimonial-quote">CHLOE, the photos are gorgeous! Thank you so, so much again for capturing this festival so beautifully for us. We so appreciate you joining us and sharing your artistry, and look forward to crossing paths again!</p><p class="testimonial-source">— Earthtones Environmental Justice Festival</p></div>
+    </div>
+  </section>
+  <section class="clients-section">
+    <p class="clients-label">Clients</p>
+    <div class="clients-grid" id="clients-grid"></div>
+  </section>
+  <section class="contact-section">
+    <div>
+      <h2 class="contact-heading">Let's make something <em>together</em></h2>
+      <p class="contact-sub">Available for editorial, commercial, and personal projects. Response within 48 hours.</p>
+      <div class="contact-links">
+        <a class="contact-link" href="mailto:chloepn.biosphere@gmail.com">Email</a>
+        <a class="contact-link" href="https://www.instagram.com/chloexistence/" target="_blank">Instagram</a>
+        <a class="contact-link" href="https://www.linkedin.com/in/chloe-peterson-nafziger-751a45149/" target="_blank">LinkedIn</a>
+      </div>
+    </div>
+    <div class="contact-form">
+      <div class="form-group"><label class="form-label">Name</label><input class="form-input" id="cf-name" type="text" placeholder="Your name" /></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="cf-email" type="email" placeholder="your@email.com" /></div>
+      <div class="form-group"><label class="form-label">Project</label><input class="form-input" id="cf-project" type="text" placeholder="Tell me about your project" /></div>
+      <div class="form-group"><label class="form-label">Message</label><textarea class="form-textarea" id="cf-message" rows="5" placeholder="Details, timeline, budget..."></textarea></div>
+      <button type="button" class="form-submit" id="cf-submit">Send Message</button>
+      <p class="form-status" id="form-status"></p>
+    </div>
+  </section>
+  <footer>
+    <span class="footer-copy">© 2025 BIOSPHERE. All rights reserved.</span>
+    <span class="footer-logo">BIOSPHERE</span>
+  </footer>
+</div>
+
+<script>
+// ── UTILS ──
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
+function toEmbed(u){if(!u)return'';return u.replace('youtu.be/','www.youtube.com/embed/').replace('watch?v=','embed/').replace(/[?&]si=[^&]+/g,'');}
+
+// ── DATA ──
+const eventPhotos=shuffle(['events/DSC00815.jpg','events/DSC01758.jpg','events/DSC03349.jpg','events/DSC03404.jpg','events/DSC03796.jpg','events/DSC04324.jpg','events/DSC04422.jpg','events/DSC04593.jpg','events/DSC04640.jpg','events/DSC04684.jpg','events/DSC04697.jpg','events/DSC06447.jpg','events/DSC06448.jpg','events/DSC06477.jpg','events/DSC06484.jpg','events/DSC06488.jpg','events/DSC07326.jpg','events/DSC07447.jpg','events/DSC07497.jpg','events/DSC07768.jpg','events/DSC07777.jpg','events/DSC08291.jpg','events/DSC08308.jpg','events/DSC08309.jpg','events/DSC08600.jpg','events/DSC08889.jpg','events/DSC08913.jpg','events/DSC08961.jpg','events/DSC08995.jpg','events/DSC09333.jpg','events/DSC09355.jpg','events/DSC09378.jpg','events/DSC09405.jpg','events/DSC09532.jpg','events/DSC09574.jpg','events/DSC09587.jpg','events/DSC09718.jpg']);
+const concertPhotos=shuffle(['concert/AH2A1759.jpg','concert/DAN_0162.jpg','concert/DAN_0386.jpg','concert/DAN_0518.jpg','concert/DAN_0929.jpg','concert/DAN_1097.jpg','concert/DAN_1201.jpg','concert/DAN_5501.jpg','concert/DAN_5651.jpg','concert/DAN_5675.jpg','concert/DAN_5850.jpg','concert/DAN_8605.jpg','concert/DAN_9746.jpg','concert/IMG_0030.jpg','concert/IMG_0147.jpg','concert/IMG_0194.jpg','concert/IMG_0202.jpg','concert/IMG_0898.jpg']);
+const engagementPhotos=shuffle(['engagements/DSC03833.jpg','engagements/DSC03928.jpg','engagements/DSC04054.jpg','engagements/DSC04138.jpg','engagements/DSC04191.jpg','engagements/DSC04385.jpg','engagements/DSC04406.jpg','engagements/DSC04460.jpg','engagements/DSC04485.jpg','engagements/DSC04511.jpg','engagements/DSC05241.jpg','engagements/DSC05248.jpg','engagements/DSC05362.jpg','engagements/DSC05524.jpg','engagements/DSC05537.jpg','engagements/DSC05630.jpg']);
+const portraitImages=[{src:'portraits/DSC00830.jpg',label:'Portrait'},{src:'portraits/DSC01381.jpg',label:'Portrait'},{src:'portraits/DSC01421.jpg',label:'Portrait'},{src:'portraits/DSC02002.JPG',label:'Portrait'},{src:'portraits/DSC04690.jpg',label:'Portrait'},{src:'portraits/DSC06529.jpg',label:'Portrait'},{src:'portraits/DSC06855.jpg',label:'Portrait'},{src:'portraits/DSC06969.jpg',label:'Portrait'},{src:'portraits/DSC07945.jpg',label:'Portrait'},{src:'portraits/DSC07980.jpg',label:'Portrait'},{src:'portraits/DSC08083.jpg',label:'Portrait'},{src:'portraits/espoir.jpg',label:'Espoir'},{src:'portraits/mint-cover.jpg',label:'MINT Cover'},{src:'portraits/mint table of contents.jpg',label:'MINT — Table of Contents'}];
+const fashionImages=shuffle([{src:'fashion/DSC06509.jpg'},{src:'fashion/DSC06629.jpg'},{src:'fashion/DSC06658.jpg'},{src:'fashion/DSC06662.jpg'},{src:'fashion/DSC06705.jpg'},{src:'fashion/DSC06731.jpg'},{src:'fashion/DSC06743.jpg'},{src:'fashion/DSC06755.jpg'},{src:'fashion/DSC06801.jpg'},{src:'fashion/DSC07047.jpg'},{src:'fashion/DSC07082.jpg'},{src:'fashion/DSC07084.jpg'},{src:'fashion/DSC07205.jpg'},{src:'fashion/DSC07253.jpg'},{src:'fashion/DSC07400.jpg'},{src:'fashion/DSC07425.jpg'},{src:'fashion/DSC07510.jpg'},{src:'fashion/DSC07714.jpg'},{src:'fashion/DSC07906.jpg'}]);
+const printImages=[{src:'print/dialects of red_1 copy.jpg',num:'01'},{src:'print/dialects of red_2 copy.jpg',num:'02'},{src:'print/dialects of red_3 copy.jpg',num:'03'},{src:'print/dialects of red_4 copy.jpg',num:'04'},{src:'print/dialects of red_5 copy.jpg',num:'05'},{src:'print/homophily_1 copy.jpg',num:'06'},{src:'print/homophily_2 copy.jpg',num:'07'},{src:'print/homophily_3 copy.jpg',num:'08'},{src:'print/homophily_4 copy.jpg',num:'09'},{src:'print/homophily_5 copy.jpg',num:'10'},{src:'print/homophily_6 copy.jpg',num:'11'},{src:'print/homophily_7 copy.jpg',num:'12'},{src:'print/homophily_8 copy.jpg',num:'13'},{src:'print/bedroom mirrors_1 copy.jpg',num:'14'},{src:'print/bedroom mirrors_2 copy.jpg',num:'15'},{src:'print/bedroom mirrors_3 copy.jpg',num:'16'},{src:'print/bedroom mirrors_4 copy.jpg',num:'17'},{src:'print/bedroom mirrors_5 copy.jpg',num:'18'},{src:'print/bedroom mirrors_6 copy.jpg',num:'19'},{src:'print/bedroom mirrors_7 copy.jpg',num:'20'},{src:'print/bedroom mirrors_8 copy.jpg',num:'21'},{src:'print/bedroom mirrors_9 copy.jpg',num:'22'},{src:'print/bedroom mirrors_10 copy.jpg',num:'23'},{src:'print/bedroom mirrors_11 copy.jpg',num:'24'},{src:'print/bedroom mirrors_12 copy.jpg',num:'25'},{src:'print/bedroom mirrors_13 copy.jpg',num:'26'},{src:'print/bedroom mirrors_14 copy.jpg',num:'27'},{src:'print/bedroom mirrors_15 copy.jpg',num:'28'}];
+
+const videoData={
+  documentary:[
+    {title:'Driftless Books & Music: Reigniting Appreciation for Slow Media',description:'Driftless Books and Music is a bookstore and concert space in a warehouse in Viroqua, Wisconsin. In 17 years, Eddy Nix, the owner, has created a space that homes close to a million books. In non-pandemic times, Driftless hosts up to 100 music events a year and created a music collective that provides community for artists. After starting his own theater company at age 16 and then spending more than a decade traveling the world, Nix bought tens of thousands of books on eBay on a whim and started a bookstore in the post office building of a small town in Wisconsin. Within two years, the bookstore had lost one of its walls in a tornado and had multiple feet of water in the building from a flood. In an act of what Eddy calls guerrilla philanthropy, a stranger gave him an abandoned tobacco warehouse in 2009 which was renamed The Forgotten Works Warehouse and Driftless Center for Slow Media. In the 15 years since, they have transformed the empty building into a community gathering space where people contribute to the inventory through donations and trades every day. <br> <br> Eddy Nix appreciates that a used bookstore can act as an alternative to the hyper-capitalism and consumerism that surrounds us. While shopping in a bookstore, you can take your time and don\'t need to buy anything. He also believes used bookstores have been spaces that support revolutionary movements and wants them to be a place that community issues get discussed. Eddy spoke of the current extinctions of physical books that are happening under our noses as books become digitized and there\'s a lack of a new generation that is motivated to protect these books. Every year, 320 million books are thrown away in the United States alone, the equivalent of 1 billion trees. Eddy hopes to pass the bookstore on to young people in the community, envisioning the bookstore eventually being run by one of two local schools, Youth Initiative High School or Thoreau College. Eddy hopes that Driftless Books and Music can help reignite excitement for literature and community in the eyes of younger generations.',embedUrl:toEmbed('https://youtu.be/9LlB6dJEC_g?si=TwRcPitZWr1owpGH')},
+    {title:'Farm Collaborative',description:'',embedUrl:'https://drive.google.com/file/d/1WiqaGzZpZlL1l2Ex9_Zv1BGdaFIFcqpa/preview'},
+    {title:'Unite SF',description:'',embedUrl:'https://drive.google.com/file/d/1vUuwiPNAHe7Q4ZmI5yz9UQKBXCpeY9mt/preview'},
+    {title:'Thoreau College: An Experiment in Holistic Higher Education',description:'Thoreau College is a microcollege in Viroqua, Wisconsin where artists and activists from ages 18 to 46 live and learn together in an intentional community. Thoreau College is working to create immersive, impactful, personalized higher education that is also financially accessible. The college currently has academic courses in regenerative agriculture, writing composition, political philosophy, and visual arts. In addition to internships and classes, each student and faculty member participates in self-governance of all college programs including admissions, outreach, curriculum design, and operating the business aspect of a greenhouse called Thoreau\'s Garden. Thoreau College is currently hosting a range of programs including the Metamorphosis Year, a full-time program for young adults seeking to challenge and develop themselves through engagement with academics, labor, community, art, and nature. The college is also organizing a three-week summer program for fifteen people that will include a week-long farm stay and an intensive workshop as an introduction to permaculture.',embedUrl:toEmbed('https://www.youtube.com/watch?v=LZmsKr_gRjE')},
+  ],
+  experimental:[
+    {title:'iridescence',description:'To have been broken is not to be irreparable. Iridescence explores the aftermath of sexual violence, highlighting the beauty that emerges in spite of trauma, as light refracts through shattered layers. Society today is faced with the constant stigmatization of sexual assault survivors and their ability to cope and heal. Over the years, the media we consume has conveyed a message of objectification and in turn unspoken support for rape culture when it comes to how a person\'s body is portrayed--so much so that the issue\'s prevalence has slowly developed into invisibility. We\'ve created a separation between a body and the human being inside of it, leaving empty, eroticized shells to be consumed by the public eye. In Iridescence, the subject melts into the background, losing any semblance of herself, becoming an abstraction of an identity. But then, she builds herself back into a complete human again, showing the power of survivors of sexual assault--this power that rapists sought to strip away, but ultimately failed to do so.',embedUrl:toEmbed('https://www.youtube.com/watch?v=2tZbx3ps5mc')},
+    {title:'sembrando estrellas',description:'A meditation on Cuban history told through three lenses: melancholy, revolt, and imagination. The film draws on the profound role art played in the Cuban revolution, counterrevolution, and the long aftermath — exploring how a people use beauty to resist, to grieve, and to dream forward.',embedUrl:toEmbed('https://www.youtube.com/watch?v=q298WQKaH0Q')},
+    {title:'biotech',description:'Humans have separated our society from the natural world with our history of colonization, deforestation, capitalism, and agriculture that have left natural resources depleted and indigenous people that coexisted with the rest of nature violently displaced. The history of botanical drawings coincides with this history of colonization. The distortion and technalization of birdsong paired with the somewhat violent movements of these early botanical drawings are representative of these first acts of distancing ourselves from what we didn\'t know, one of the most influential problems in our modern world.',embedUrl:toEmbed('https://www.youtube.com/watch?v=0N8EQ4GQDQI')},
+    {title:'take a breath',description:'Underwater, time seems to freeze and a single moment can last for hours. The sound and lack thereof and overlayed imagery that I\'ve captured over my lifetime represents the serenity and magic that water can create. I find the artificial light of projectors extraordinary. Beams of red, blue, and green light pass through a liquid crystal display composed of thousands of tiny pixels to create an image you once saw with your own eyes and immortalized with a camera. The lack of cuts adds to this sense of timelessness.',embedUrl:toEmbed('https://www.youtube.com/watch?v=jS4QqWlSrSo')},
+    {title:'the bond girls',description:'Men have been playing the hero James Bond in movies for 67 years. In 2021, for the first time ever, 007 is not only a woman but a black woman! The franchise has such widespread influence over young people\'s minds, shaping our social norms and morals. The Bond Girls explores the role of women in our media, blending clips of our \'hero\' James Bond being violent towards female characters with the distortion of one of my own photos. Sean Connery who played Bond from 1962 to 1983 literally encouraged violence against women in interviews saying, "I don\'t think there is anything particularly wrong in hitting a woman, though I don\'t recommend you do it in the same way you hit a man. You don\'t do it with a clenched fist. You do it with an open hand. Remember that."',embedUrl:toEmbed('https://www.youtube.com/watch?v=Rf2337hicqM')},
+    {title:'spring break',description:'',embedUrl:toEmbed('https://www.youtube.com/watch?v=yskSjxIOPkM')},
+    {title:'a walk by the mississippi',description:'',embedUrl:toEmbed('https://www.youtube.com/watch?v=cKrPBtPz234')},
+  ]
+};
+
+const clientData=[
+  {file:'client logos/website_logo-01.png',name:'SF Chamber of Commerce',url:'https://sfchamber.com/'},
+  {file:'client logos/website_logo-02.png',name:'Stanford School of Earth, Energy & Environmental Sciences',url:'https://pangea.stanford.edu/d7-archive/sesd7/index/index.html'},
+  {file:'client logos/website_logo-03.png',name:'World Savvy',url:'https://www.worldsavvy.org/'},
+  {file:'client logos/website_logo-04.png',name:'SF Parks Alliance',url:'https://sanfranciscoparksalliance.org/'},
+  {file:'client logos/website_logo-07.png',name:'Earthtones Environmental Justice Festival',url:'https://www.stanfordearthtones.com/'},
+  {file:'client logos/website_logo-06.png',name:'Climate Resilient Communities',url:'https://crcommunities.org/'},
+  {file:'client logos/website_logo-05.png',name:'Climate Positive Investing',url:'https://www.positiveclimate.org/'},
+  {file:'client logos/website_logo-08.png',name:'Wenck',url:'https://www.bloomberg.com/profile/company/0003554D:US'},
+  {file:'client logos/website_logo-09.png',name:'Sustology',url:'https://www.sustology.com/'},
+  {file:'client logos/website_logo-10.png',name:'Stanford Concert Network',url:'https://scn.stanford.edu/'},
+  {file:'client logos/website_logo-11.png',name:'Pipeline Foods',url:'https://x.com/pipelinefoods?lang=en'},
+  {file:'client logos/website_logo-12.png',name:"VMware Women's Leadership Innovation Lab at Stanford University",url:'https://womensleadership.stanford.edu/'},
+  {file:'client logos/website_logo-13.png',name:"Thoreau's Garden",url:'https://www.littlebirdplants.com/'},
+  {file:'client logos/website_logo-16.png',name:'Thoreau College',url:'https://thoreaucollege.org/'},
+  {file:'client logos/website_logo-17.png',name:'Solving Climate Change',url:'https://www.solveclimate.org/'},
+  {file:'client logos/website_logo-20.png',name:'Friends of the OMI Mini Parks',url:'https://weareomi.org/'},
+  {file:'client logos/website_logo-21.png',name:'Recess Collective',url:'https://recesscollective.org/'},
+  {file:'client logos/website_logo-22.png',name:'Swissnex',url:'https://swissnex.org/'},
+  {file:'client logos/website_logo-23.png',name:'Root Division',url:'https://rootdivision.org/'},
+  {file:'client logos/website_logo-24.png',name:'St Paul Parks & Recreation',url:'https://www.stpaul.gov/departments/parks-and-recreation'},
+  {file:'client logos/website_logo-25.png',name:'Tradición Peruana Cultural Center',url:'https://www.perutpcc.org/'},
+  {file:'client logos/website_logo-26.png',name:'Youverse Project',url:'https://www.youvsproject.org/'},
+  {file:'client logos/website_logo-27.png',name:'Youth Art Exchange',url:'https://www.youthartexchange.org/'},
+  {file:'client logos/website_logo-28.png',name:'June Jordan School for Equity',url:'https://www.sfusd.edu/school/june-jordan-school-equity'},
+];
+
+
+// ── VIDEO ──
+function renderVideoList(tab) {
+  const videos=videoData[tab], container=document.getElementById('video-container');
+  const pairStart=tab==='experimental'?videos.length-2:videos.length;
+  let rows='';
+  videos.slice(0,pairStart).forEach((v,i)=>{
+    const isDrive=v.embedUrl.includes('drive.google.com');
+    const attrs=isDrive?'allowfullscreen':'allowfullscreen allow="autoplay; encrypted-media"';
+    const desc=v.description&&v.description.trim()?`<p class="video-text-meta">${v.description}</p>`:'';
+    rows+=`<div class="video-row ${i%2===0?'text-right':'text-left'}">
+      <div class="video-embed-wrap"><iframe src="${v.embedUrl}" ${attrs}></iframe></div>
+      <div class="video-text">
+        <span class="video-text-num">${String(i+1).padStart(2,'0')}</span>
+        <div class="video-text-divider"></div>
+        <h3 class="video-text-title">${v.title}</h3>${desc}
+      </div></div>`;
+  });
+  const pair=videos.slice(pairStart);
+  if(pair.length===2) rows+=`<div class="video-pair">
+    <div class="video-embed-wrap"><iframe src="${pair[0].embedUrl}" allowfullscreen allow="autoplay; encrypted-media"></iframe></div>
+    <div class="video-embed-wrap"><iframe src="${pair[1].embedUrl}" allowfullscreen allow="autoplay; encrypted-media"></iframe></div>
+  </div>`;
+  container.innerHTML=`<div class="video-list" style="padding-top:8px">${rows}</div>`;
+}
+
+// ── BUILD GRIDS ──
+function buildPhotoMasonry(id,photos){
+  document.getElementById(id).innerHTML=photos.map(f=>`<div class="photo-masonry-item" data-src="${f}"><img src="${f}" alt="" loading="lazy" /></div>`).join('');
+}
+function buildMasonryFor(id,images){
+  document.getElementById(id).innerHTML=images.map(img=>`<div class="masonry-item" data-src="${img.src}"><img src="${img.src}" alt="" loading="lazy" /></div>`).join('');
+}
+function buildPrintGrid(){
+  document.getElementById('print-grid').innerHTML=printImages.map(p=>
+    p.src?`<div class="print-item" data-src="${p.src}"><img src="${p.src}" alt="" loading="lazy" /></div>`
+         :`<div class="print-item"><div class="print-placeholder"><span class="print-placeholder-num">${p.num}</span><span class="print-placeholder-hint">Add image</span></div></div>`
+  ).join('');
+}
+function buildClientsGrid(){
+  document.getElementById('clients-grid').innerHTML=clientData.map(c=>`<a class="client-item" href="${c.url}" target="_blank" rel="noopener" title="${c.name}"><img src="${c.file}" alt="${c.name}" loading="lazy" /><span class="client-fallback">${c.name}</span></a>`).join('');
+}
+
+// ── CURSOR ──
+// Force custom cursor on any non-touch device
+const hasFineMouse = !window.matchMedia('(pointer: coarse)').matches;
+let trailActive = false;
+
+if (hasFineMouse) {
+  document.body.classList.add('custom-cursor-active');
+  const dot = document.getElementById('cursorDot');
+  const ring = document.getElementById('cursorRing');
+  const cross = document.getElementById('cursorCross');
+  let mx=0,my=0,rx=0,ry=0;
+
+  document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; });
+  (function animCursor(){
+    dot.style.left=mx+'px'; dot.style.top=my+'px';
+    cross.style.left=mx+'px'; cross.style.top=my+'px';
+    rx+=(mx-rx)*0.12; ry+=(my-ry)*0.12;
+    ring.style.left=rx+'px'; ring.style.top=ry+'px';
+    requestAnimationFrame(animCursor);
+  })();
+
+  document.addEventListener('mouseover', e => {
+    if (e.target.closest('#mainNav') || e.target.closest('.hero-cta') || e.target.closest('.lightbox')) return;
+    if (e.target.closest('.masonry-item,.photo-masonry-item,.print-item[data-src]'))
+      document.body.classList.add('cursor-photo');
+  });
+  document.addEventListener('mouseout', e => {
+    if (e.target.closest('.masonry-item,.photo-masonry-item,.print-item[data-src]'))
+      document.body.classList.remove('cursor-photo');
+  });
+  document.getElementById('mainNav').addEventListener('mouseenter', () => document.body.classList.remove('cursor-photo'));
+
+  // trail
+  const trailSrcs=shuffle(['cursor/DAN_0627.jpg','cursor/DSC04460.jpg','cursor/DAN_5675.jpg','cursor/DSC07906.jpg','cursor/euan.jpg','cursor/DSC09405.jpg','cursor/DSC09718.jpg','cursor/IMG_3818.jpg','cursor/IMG_4020.jpg','cursor/mint-cover.jpg','cursor/DSC06447.jpg']);
+  const TCOUNT=10,tEls=[],ROTATIONS=[-6,-3,1,4,-5,2,-2,5,-4,3];
+  let tHead=0,lastT=0,tSrcIdx=0;
+  for(let i=0;i<TCOUNT;i++){
+    const img=document.createElement('img');
+    img.className='trail-img'; img.src=trailSrcs[i%trailSrcs.length];
+    document.body.appendChild(img);
+    tEls.push({el:img,x:-999,y:-999,tx:-999,ty:-999,vis:false,timer:null});
+  }
+  (function animTrail(){
+    tEls.forEach(t=>{
+      if(!t.vis)return;
+      t.x+=(t.tx-t.x)*0.08; t.y+=(t.ty-t.y)*0.08;
+      t.el.style.left=t.x+'px'; t.el.style.top=t.y+'px';
+    });
+    requestAnimationFrame(animTrail);
+  })();
+  document.addEventListener('mousemove', e => {
+    if (!trailActive) return;
+    if (e.target.closest('.hero-cta,#mainNav')) return;
+    const now=Date.now(); if(now-lastT<280)return; lastT=now;
+    const slot=tEls[tHead]; tHead=(tHead+1)%TCOUNT;
+    slot.el.src=trailSrcs[tSrcIdx++%trailSrcs.length];
+    slot.tx=e.clientX; slot.ty=e.clientY; slot.x=e.clientX; slot.y=e.clientY;
+    slot.el.style.left=slot.x+'px'; slot.el.style.top=slot.y+'px';
+    slot.el.style.transform='translate(-50%,-55%) rotate('+ROTATIONS[tHead%ROTATIONS.length]+'deg) scale(0.95)';
+    slot.el.style.zIndex=9000+tHead;
+    slot.vis=true; slot.el.classList.add('visible');
+    if(slot.timer)clearTimeout(slot.timer);
+    slot.timer=setTimeout(()=>{slot.el.classList.remove('visible');slot.vis=false;},2200);
+  });
+}
+
+// ── NAVIGATION ──
+history.scrollRestoration = 'manual';
+let currentPage='home';
+let _navigating = false;
+
+function showPage(name){
+  if(currentPage===name) return;
+  if(_navigating) return;
+  _navigating = true;
+
+  currentPage=name;
+  sessionStorage.setItem('biosphere_page', name);
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-links button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  const btn=document.querySelector(`.nav-links button[data-page="${name}"]`);
+  if(btn)btn.classList.add('active');
+  const isHome=name==='home';
+  document.body.classList.toggle('home-active',isHome);
+  trailActive=isHome;
+  if(!isHome&&hasFineMouse) document.querySelectorAll('.trail-img').forEach(img=>img.classList.remove('visible'));
+
+  // Use requestAnimationFrame to scroll AFTER paint, preventing scroll events from interfering
+  requestAnimationFrame(()=>{
+    document.documentElement.scrollTop=0;
+    document.body.scrollTop=0;
+    setTimeout(()=>{ _navigating=false; }, 50);
+  });
+}
+
+// ── LIGHTBOX ──
+let lbPhotos=[],lbIdx=0;
+function openLightbox(src){
+  const page=document.querySelector('.page.active');
+  const sub=page&&(page.querySelector('.sub-page.active')||page);
+  lbPhotos=Array.from((sub||document).querySelectorAll('[data-src]')).map(el=>el.dataset.src).filter(Boolean);
+  lbIdx=lbPhotos.indexOf(src);
+  if(lbIdx===-1){lbPhotos=[src];lbIdx=0;}
+  const img=document.getElementById('lightboxImg');
+  img.style.transition='none'; img.src=src; img.style.opacity='1';
+  setTimeout(()=>img.style.transition='opacity 0.12s ease',50);
+  document.getElementById('lightboxCap').textContent='';
+  document.getElementById('lightbox').classList.add('open');
+  document.body.classList.add('lightbox-open');
+  document.body.style.overflow='hidden';
+}
+function closeLightbox(){
+  document.getElementById('lightbox').classList.remove('open');
+  document.body.classList.remove('lightbox-open');
+  document.body.style.overflow='';
+}
+function lightboxNav(dir){
+  if(!lbPhotos.length)return;
+  lbIdx=(lbIdx+dir+lbPhotos.length)%lbPhotos.length;
+  const img=document.getElementById('lightboxImg');
+  img.style.opacity='0';
+  setTimeout(()=>{img.src=lbPhotos[lbIdx];img.style.opacity='1';},120);
+}
+
+// ── CONTACT via Formspree ──
+async function submitForm(){
+  const name=document.getElementById('cf-name').value.trim();
+  const email=document.getElementById('cf-email').value.trim();
+  const project=document.getElementById('cf-project').value.trim();
+  const message=document.getElementById('cf-message').value.trim();
+  const status=document.getElementById('form-status');
+  const btn=document.getElementById('cf-submit');
+  if(!name||!email||!message){status.textContent='Please fill in name, email, and message.';return;}
+  btn.disabled=true; btn.textContent='Sending…'; status.textContent='';
+  try{
+    const res=await fetch('https://formspree.io/f/xdabrepj',{
+      method:'POST',headers:{'Accept':'application/json','Content-Type':'application/json'},
+      body:JSON.stringify({name,email,project,message})
+    });
+    if(res.ok){
+      btn.textContent='Sent ✓';
+      status.textContent="Message received — I'll be in touch soon.";
+      ['cf-name','cf-email','cf-project','cf-message'].forEach(id=>document.getElementById(id).value='');
+    } else { throw new Error(); }
+  } catch {
+    btn.disabled=false; btn.textContent='Send Message';
+    status.textContent='Something went wrong — please email chloepn.biosphere@gmail.com directly.';
+  }
+}
+
+// ── INIT ──
+buildPhotoMasonry('events-masonry',eventPhotos);
+buildPhotoMasonry('concerts-masonry',concertPhotos);
+buildPhotoMasonry('engagements-masonry',engagementPhotos);
+buildMasonryFor('portrait-masonry',portraitImages);
+buildMasonryFor('fashion-masonry',fashionImages);
+buildPrintGrid();
+buildClientsGrid();
+renderVideoList('documentary');
+document.body.classList.add('home-active');
+trailActive=true;
+
+// Restore page from sessionStorage (survives live-server reloads)
+const _savedPage = sessionStorage.getItem('biosphere_page');
+if (_savedPage && _savedPage !== 'home') {
+  // Bypass the guard by temporarily resetting currentPage
+  currentPage = 'home';
+  showPage(_savedPage);
+}
+
+// nav
+document.getElementById('nav-home-logo').addEventListener('click',e=>{e.stopPropagation();showPage('home');});
+document.querySelectorAll('.nav-links button[data-page]').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();showPage(btn.dataset.page);}));
+document.getElementById('hero-cta-btn').addEventListener('click',e=>{e.stopPropagation();showPage('photography');});
+
+// photo sub-nav
+document.querySelectorAll('#photo-sub-nav .sub-nav-btn').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('#photo-sub-nav .sub-nav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#page-photography .sub-page').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('photo-sub-'+btn.dataset.name).classList.add('active');
+}));
+
+// video sub-nav
+document.querySelectorAll('#video-sub-nav .sub-nav-btn').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('#video-sub-nav .sub-nav-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderVideoList(btn.dataset.tab);
+}));
+
+// lightbox — single delegated click listener, zero inline handlers
+document.addEventListener('click',e=>{
+  const lb=document.getElementById('lightbox');
+
+  // Photo item clicked — only open if item is inside the active page/sub-page
+  const item=e.target.closest('[data-src]');
+  if(item && !e.target.closest('.lightbox') && !e.target.closest('#mainNav')){
+    const activePage=document.querySelector('.page.active');
+    const activeSub=activePage&&(activePage.querySelector('.sub-page.active')||activePage);
+    if(activeSub && activeSub.contains(item)){
+      e.stopPropagation();
+      openLightbox(item.dataset.src);
+      return;
+    }
+  }
+
+  // Everything below only applies when lightbox is open
+  if(!lb.classList.contains('open')) return;
+  if(e.target.closest('#lightbox-prev')){ e.stopPropagation(); lightboxNav(-1); return; }
+  if(e.target.closest('#lightbox-next')){ e.stopPropagation(); lightboxNav(1); return; }
+  if(e.target.closest('#lightbox-close') || (!e.target.closest('#lightboxImg') && !e.target.closest('.lightbox-arrow'))){
+    e.stopPropagation();
+    closeLightbox();
+  }
+});
+
+document.addEventListener('keydown',e=>{
+  if(!document.getElementById('lightbox').classList.contains('open'))return;
+  if(e.key==='Escape')closeLightbox();
+  if(e.key==='ArrowRight'||e.key==='ArrowDown')lightboxNav(1);
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp')lightboxNav(-1);
+});
+
+// contact
+document.getElementById('cf-submit').addEventListener('click',e=>{e.stopPropagation();submitForm();});
+
+// nav scroll indicator — guarded against firing during page transitions
+window.addEventListener('scroll',()=>{
+  if(_navigating) return;
+  document.getElementById('mainNav').classList.toggle('scrolled',window.scrollY>20);
+}, {passive: true});
+</script>
+</body>
+</html>
