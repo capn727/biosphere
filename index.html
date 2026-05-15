@@ -111,6 +111,9 @@
     .photo-masonry-item img.loaded, .masonry-item img.loaded, .print-item img.loaded {
       opacity: 1;
     }
+    /* aspect-ratio wrapper prevents reflow — set by JS once dimensions are known */
+    .img-wrap { width: 100%; overflow: hidden; background: var(--cream); }
+    .img-wrap img { width: 100%; display: block; }
 
     /* ── HOME ── */
     .home-fullscreen { position: relative; width: 100%; height: 100vh; min-height: 600px; overflow: hidden; }
@@ -127,10 +130,12 @@
     /* ── MASONRY ── */
     .masonry { columns: 3; column-gap: 12px; padding: 0 48px; }
     .masonry-item { break-inside: avoid; margin-bottom: 12px; overflow: hidden; position: relative; background: var(--cream); cursor: pointer; }
-    .masonry-item img { width: 100%; display: block; object-fit: contain; }
+    .masonry-item .img-wrap img { width: 100%; display: block; object-fit: contain; }
     .photo-masonry { columns: 3; column-gap: 10px; padding: 0 48px 80px; }
     .photo-masonry-item { break-inside: avoid; margin-bottom: 10px; overflow: hidden; position: relative; background: var(--cream); cursor: pointer; }
-    .photo-masonry-item img { width: 100%; display: block; }
+    .photo-masonry-item .img-wrap img { width: 100%; display: block; }
+    .print-item .img-wrap img { width: 100%; height: auto; display: block; object-fit: contain; transition: transform 0.7s; }
+    .print-item:hover .img-wrap img { transform: scale(1.02); }
 
     /* ── VIDEO ── */
     .video-list { padding: 0 48px 80px; display: flex; flex-direction: column; gap: 80px; }
@@ -149,8 +154,6 @@
     /* ── PRINT ── */
     .print-grid { display: flex; flex-direction: column; gap: 0; padding: 0 0 100px; }
     .print-item { position: relative; width: 100%; overflow: hidden; background: var(--cream); cursor: pointer; }
-    .print-item img { width: 100%; height: auto; display: block; object-fit: contain; transition: transform 0.7s; }
-    .print-item:hover img { transform: scale(1.02); }
     .print-placeholder { width: 100%; padding: 80px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: var(--cream); cursor: default; }
     .print-placeholder-num { font-family: var(--serif); font-size: 1.4rem; font-style: italic; color: var(--warm-gray); }
     .print-placeholder-hint { font-family: var(--sans); font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--warm-gray); }
@@ -459,16 +462,18 @@ function renderVideoList(tab) {
 }
 
 // ── BUILD GRIDS ──
-// Use data-lazy-src instead of src — images only load when entering viewport
+function makeItem(cls, src) {
+  return `<div class="${cls}" data-src="${src}"><div class="img-wrap"><img data-lazy-src="${src}" alt="" /></div></div>`;
+}
 function buildPhotoMasonry(id,photos){
-  document.getElementById(id).innerHTML=photos.map(f=>`<div class="photo-masonry-item" data-src="${f}"><img data-lazy-src="${f}" alt="" /></div>`).join('');
+  document.getElementById(id).innerHTML=photos.map(f=>makeItem('photo-masonry-item',f)).join('');
 }
 function buildMasonryFor(id,images){
-  document.getElementById(id).innerHTML=images.map(img=>`<div class="masonry-item" data-src="${img.src}"><img data-lazy-src="${img.src}" alt="" /></div>`).join('');
+  document.getElementById(id).innerHTML=images.map(img=>makeItem('masonry-item',img.src)).join('');
 }
 function buildPrintGrid(){
   document.getElementById('print-grid').innerHTML=printImages.map(p=>
-    p.src?`<div class="print-item" data-src="${p.src}"><img data-lazy-src="${p.src}" alt="" /></div>`
+    p.src?makeItem('print-item',p.src)
          :`<div class="print-item"><div class="print-placeholder"><span class="print-placeholder-num">${p.num}</span><span class="print-placeholder-hint">Add image</span></div></div>`
   ).join('');
 }
@@ -476,21 +481,35 @@ function buildClientsGrid(){
   document.getElementById('clients-grid').innerHTML=clientData.map(c=>`<a class="client-item" href="${c.url}" target="_blank" rel="noopener" title="${c.name}"><img data-lazy-src="${c.file}" alt="${c.name}" /><span class="client-fallback">${c.name}</span></a>`).join('');
 }
 
-// Intersection observer — loads images only when ~200px from viewport
+// Intersection observer — sets aspect-ratio on wrapper as soon as dimensions known, then fades in
 const imgObserver = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
     if (entry.isIntersecting) {
       const img = entry.target;
-      if (img.dataset.lazySrc) {
-        img.src = img.dataset.lazySrc;
-        delete img.dataset.lazySrc;
+      if (!img.dataset.lazySrc) return;
+      const src = img.dataset.lazySrc;
+      delete img.dataset.lazySrc;
+      imgObserver.unobserve(img);
+
+      // Use a hidden Image() to get dimensions before rendering
+      const probe = new Image();
+      probe.onload = () => {
+        // Reserve exact space before showing image
+        const wrap = img.closest('.img-wrap');
+        if (wrap && probe.naturalWidth && probe.naturalHeight) {
+          wrap.style.aspectRatio = `${probe.naturalWidth} / ${probe.naturalHeight}`;
+        }
+        img.src = src;
         img.onload = () => img.classList.add('loaded');
-        img.onerror = () => img.classList.add('loaded'); // don't block on broken images
-        imgObserver.unobserve(img);
-      }
+      };
+      probe.onerror = () => {
+        img.src = src;
+        img.classList.add('loaded');
+      };
+      probe.src = src;
     }
   });
-}, { rootMargin: '200px' });
+}, { rootMargin: '400px' }); // load further ahead so space is reserved before scrolling to it
 
 function observeImages(container) {
   container.querySelectorAll('img[data-lazy-src]').forEach(img => imgObserver.observe(img));
