@@ -7,6 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/masonry/4.2.2/masonry.pkgd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.imagesloaded/5.0.0/imagesloaded.pkgd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     @font-face { font-family: 'Prima'; src: url('prima.ttf') format('truetype'); font-weight: normal; font-style: normal; }
@@ -128,14 +130,12 @@
     .hero-cta::after { content: '→'; font-size: 0.9rem; }
 
     /* ── MASONRY ── */
-    .masonry { columns: 3; column-gap: 12px; padding: 0 48px; }
-    .masonry-item { break-inside: avoid; margin-bottom: 12px; overflow: hidden; position: relative; background: var(--cream); cursor: pointer; }
+    .masonry { position: relative; padding: 0 48px; }
+    .masonry-item { width: 31.5%; margin-bottom: 12px; overflow: hidden; position: relative; background: var(--cream); cursor: pointer; }
     .masonry-item .img-wrap img { width: 100%; display: block; object-fit: contain; }
-    .photo-masonry { columns: 3; column-gap: 10px; padding: 0 48px 80px; }
-    .photo-masonry-item { break-inside: avoid; margin-bottom: 10px; overflow: hidden; position: relative; background: var(--cream); cursor: pointer; }
+    .photo-masonry { position: relative; padding: 0 48px 80px; }
+    .photo-masonry-item { width: 31.5%; margin-bottom: 10px; overflow: hidden; position: relative; background: var(--cream); cursor: pointer; }
     .photo-masonry-item .img-wrap img { width: 100%; display: block; }
-    .print-item .img-wrap img { width: 100%; height: auto; display: block; object-fit: contain; transition: transform 0.7s; }
-    .print-item:hover .img-wrap img { transform: scale(1.02); }
 
     /* ── VIDEO ── */
     .video-list { padding: 0 48px 80px; display: flex; flex-direction: column; gap: 80px; }
@@ -154,6 +154,8 @@
     /* ── PRINT ── */
     .print-grid { display: flex; flex-direction: column; gap: 0; padding: 0 0 100px; }
     .print-item { position: relative; width: 100%; overflow: hidden; background: var(--cream); cursor: pointer; }
+    .print-item .img-wrap img { width: 100%; height: auto; display: block; object-fit: contain; transition: transform 0.7s; }
+    .print-item:hover .img-wrap img { transform: scale(1.02); }
     .print-placeholder { width: 100%; padding: 80px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: var(--cream); cursor: default; }
     .print-placeholder-num { font-family: var(--serif); font-size: 1.4rem; font-style: italic; color: var(--warm-gray); }
     .print-placeholder-hint { font-family: var(--sans); font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--warm-gray); }
@@ -229,7 +231,8 @@
     @media (max-width: 768px) {
       nav { padding: 14px 24px; } .nav-links { gap: 16px; } .nav-links a { font-size: 0.58rem; } .nav-logo-img { height: 30px; }
       .home-cta-overlay { bottom: 24px; right: 24px; }
-      .masonry { columns: 2; padding: 0 24px; } .photo-masonry { columns: 2; padding: 0 24px 60px; }
+      .masonry { padding: 0 24px; } .photo-masonry { padding: 0 24px 60px; }
+      .masonry-item { width: 48%; } .photo-masonry-item { width: 48%; }
       .video-list { padding: 0 24px 60px; gap: 48px; } .video-row { grid-template-columns: 1fr; gap: 24px; }
       .video-pair { grid-template-columns: 1fr; gap: 16px; }
       .video-row.text-left .video-embed-wrap, .video-row.text-right .video-embed-wrap { order: 1; }
@@ -462,14 +465,36 @@ function renderVideoList(tab) {
 }
 
 // ── BUILD GRIDS ──
+const msnInstances = {}; // store Masonry instances per container id
+
 function makeItem(cls, src) {
   return `<div class="${cls}" data-src="${src}"><div class="img-wrap"><img data-lazy-src="${src}" alt="" /></div></div>`;
 }
-function buildPhotoMasonry(id,photos){
-  document.getElementById(id).innerHTML=photos.map(f=>makeItem('photo-masonry-item',f)).join('');
+
+function initMasonry(containerId, itemSelector, gutter) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (msnInstances[containerId]) {
+    msnInstances[containerId].destroy();
+  }
+  msnInstances[containerId] = new Masonry(el, {
+    itemSelector,
+    columnWidth: itemSelector,
+    percentPosition: true,
+    gutter,
+    transitionDuration: 0
+  });
 }
-function buildMasonryFor(id,images){
-  document.getElementById(id).innerHTML=images.map(img=>makeItem('masonry-item',img.src)).join('');
+
+function buildPhotoMasonry(id, photos) {
+  const el = document.getElementById(id);
+  el.innerHTML = photos.map(f => makeItem('photo-masonry-item', f)).join('');
+  initMasonry(id, '.photo-masonry-item', 10);
+}
+function buildMasonryFor(id, images) {
+  const el = document.getElementById(id);
+  el.innerHTML = images.map(img => makeItem('masonry-item', img.src)).join('');
+  initMasonry(id, '.masonry-item', 12);
 }
 function buildPrintGrid(){
   document.getElementById('print-grid').innerHTML=printImages.map(p=>
@@ -481,35 +506,37 @@ function buildClientsGrid(){
   document.getElementById('clients-grid').innerHTML=clientData.map(c=>`<a class="client-item" href="${c.url}" target="_blank" rel="noopener" title="${c.name}"><img data-lazy-src="${c.file}" alt="${c.name}" /><span class="client-fallback">${c.name}</span></a>`).join('');
 }
 
-// Intersection observer — sets aspect-ratio on wrapper as soon as dimensions known, then fades in
+// Intersection observer — probes dimensions, sets aspect-ratio, then reveals
 const imgObserver = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      const img = entry.target;
-      if (!img.dataset.lazySrc) return;
-      const src = img.dataset.lazySrc;
-      delete img.dataset.lazySrc;
-      imgObserver.unobserve(img);
+    if (!entry.isIntersecting) return;
+    const img = entry.target;
+    if (!img.dataset.lazySrc) return;
+    const src = img.dataset.lazySrc;
+    delete img.dataset.lazySrc;
+    imgObserver.unobserve(img);
 
-      // Use a hidden Image() to get dimensions before rendering
-      const probe = new Image();
-      probe.onload = () => {
-        // Reserve exact space before showing image
-        const wrap = img.closest('.img-wrap');
-        if (wrap && probe.naturalWidth && probe.naturalHeight) {
-          wrap.style.aspectRatio = `${probe.naturalWidth} / ${probe.naturalHeight}`;
-        }
-        img.src = src;
-        img.onload = () => img.classList.add('loaded');
-      };
-      probe.onerror = () => {
-        img.src = src;
+    const probe = new Image();
+    probe.onload = () => {
+      const wrap = img.closest('.img-wrap');
+      if (wrap && probe.naturalWidth && probe.naturalHeight) {
+        wrap.style.aspectRatio = `${probe.naturalWidth} / ${probe.naturalHeight}`;
+      }
+      img.src = src;
+      img.onload = () => {
         img.classList.add('loaded');
+        // Tell Masonry to re-layout after image loads
+        const container = img.closest('.photo-masonry, .masonry');
+        if (container) {
+          const msn = msnInstances[container.id];
+          if (msn) msn.layout();
+        }
       };
-      probe.src = src;
-    }
+    };
+    probe.onerror = () => { img.src = src; img.classList.add('loaded'); };
+    probe.src = src;
   });
-}, { rootMargin: '400px' }); // load further ahead so space is reserved before scrolling to it
+}, { rootMargin: '400px' });
 
 function observeImages(container) {
   container.querySelectorAll('img[data-lazy-src]').forEach(img => imgObserver.observe(img));
@@ -704,6 +731,7 @@ document.querySelectorAll('#photo-sub-nav .sub-nav-btn').forEach(btn=>btn.addEve
   btn.classList.add('active');
   const subPage = document.getElementById('photo-sub-'+btn.dataset.name);
   if (subPage) { subPage.classList.add('active'); observeImages(subPage); }
+  sessionStorage.setItem('biosphere_photo_tab', btn.dataset.name);
 }));
 
 // video sub-nav
@@ -711,7 +739,26 @@ document.querySelectorAll('#video-sub-nav .sub-nav-btn').forEach(btn=>btn.addEve
   document.querySelectorAll('#video-sub-nav .sub-nav-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderVideoList(btn.dataset.tab);
+  sessionStorage.setItem('biosphere_video_tab', btn.dataset.tab);
 }));
+
+// Restore sub-tabs from sessionStorage
+const _savedPhotoTab = sessionStorage.getItem('biosphere_photo_tab');
+if (_savedPhotoTab && _savedPhotoTab !== 'events') {
+  document.querySelectorAll('#photo-sub-nav .sub-nav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#page-photography .sub-page').forEach(p=>p.classList.remove('active'));
+  const btn = document.querySelector(`#photo-sub-nav .sub-nav-btn[data-name="${_savedPhotoTab}"]`);
+  if (btn) btn.classList.add('active');
+  const subPage = document.getElementById('photo-sub-'+_savedPhotoTab);
+  if (subPage) { subPage.classList.add('active'); observeImages(subPage); }
+}
+const _savedVideoTab = sessionStorage.getItem('biosphere_video_tab');
+if (_savedVideoTab && _savedVideoTab !== 'documentary') {
+  document.querySelectorAll('#video-sub-nav .sub-nav-btn').forEach(b=>b.classList.remove('active'));
+  const btn = document.querySelector(`#video-sub-nav .sub-nav-btn[data-tab="${_savedVideoTab}"]`);
+  if (btn) btn.classList.add('active');
+  renderVideoList(_savedVideoTab);
+}
 
 // lightbox — single delegated click listener, zero inline handlers
 document.addEventListener('click',e=>{
