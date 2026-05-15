@@ -130,11 +130,11 @@
     .hero-cta::after { content: '→'; font-size: 0.9rem; }
 
     /* ── MASONRY ── */
-    .masonry { position: relative; padding: 0 48px; }
-    .masonry-item { width: 31.5%; margin-bottom: 12px; overflow: hidden; position: relative; background: var(--cream); cursor: pointer; }
+    .masonry { position: relative; padding: 0; }
+    .masonry-item { width: calc(33.333% - 3px); margin-bottom: 4px; overflow: hidden; position: relative; background: var(--cream); cursor: pointer; }
     .masonry-item .img-wrap img { width: 100%; display: block; object-fit: contain; }
-    .photo-masonry { position: relative; padding: 0 48px 80px; }
-    .photo-masonry-item { width: 31.5%; margin-bottom: 10px; overflow: hidden; position: relative; background: var(--cream); cursor: pointer; }
+    .photo-masonry { position: relative; padding: 0 0 80px; }
+    .photo-masonry-item { width: calc(33.333% - 3px); margin-bottom: 4px; overflow: hidden; position: relative; background: var(--cream); cursor: pointer; }
     .photo-masonry-item .img-wrap img { width: 100%; display: block; }
 
     /* ── VIDEO ── */
@@ -229,14 +229,14 @@
 
     /* ── MOBILE ── */
     @media (max-width: 1024px) {
-      .masonry-item { width: 48%; }
-      .photo-masonry-item { width: 48%; }
+      .masonry-item { width: calc(50% - 2px); }
+      .photo-masonry-item { width: calc(50% - 2px); }
     }
     @media (max-width: 768px) {
       nav { padding: 14px 24px; } .nav-links { gap: 16px; } .nav-links a { font-size: 0.58rem; } .nav-logo-img { height: 30px; }
       .home-cta-overlay { bottom: 24px; right: 24px; }
-      .masonry { padding: 0 24px; } .photo-masonry { padding: 0 24px 60px; }
-      .masonry-item { width: 48%; } .photo-masonry-item { width: 48%; }
+      .masonry { padding: 0; } .photo-masonry { padding: 0 0 60px; }
+      .masonry-item { width: calc(50% - 2px); } .photo-masonry-item { width: calc(50% - 2px); }
       .video-list { padding: 0 24px 60px; gap: 48px; } .video-row { grid-template-columns: 1fr; gap: 24px; }
       .video-pair { grid-template-columns: 1fr; gap: 16px; }
       .video-row.text-left .video-embed-wrap, .video-row.text-right .video-embed-wrap { order: 1; }
@@ -493,12 +493,12 @@ function initMasonry(containerId, itemSelector, gutter) {
 function buildPhotoMasonry(id, photos) {
   const el = document.getElementById(id);
   el.innerHTML = photos.map(f => makeItem('photo-masonry-item', f)).join('');
-  initMasonry(id, '.photo-masonry-item', 10);
+  initMasonry(id, '.photo-masonry-item', 4);
 }
 function buildMasonryFor(id, images) {
   const el = document.getElementById(id);
   el.innerHTML = images.map(img => makeItem('masonry-item', img.src)).join('');
-  initMasonry(id, '.masonry-item', 12);
+  initMasonry(id, '.masonry-item', 4);
 }
 function buildPrintGrid(){
   document.getElementById('print-grid').innerHTML=printImages.map(p=>
@@ -543,7 +543,31 @@ const imgObserver = new IntersectionObserver((entries) => {
 }, { rootMargin: '400px' });
 
 function observeImages(container) {
-  container.querySelectorAll('img[data-lazy-src]').forEach(img => imgObserver.observe(img));
+  const imgs = Array.from(container.querySelectorAll('img[data-lazy-src]'));
+  imgs.forEach((img, i) => {
+    if (i < 6) {
+      // Load first 6 immediately — they're likely already in viewport
+      const src = img.dataset.lazySrc;
+      delete img.dataset.lazySrc;
+      const probe = new Image();
+      probe.onload = () => {
+        const wrap = img.closest('.img-wrap');
+        if (wrap && probe.naturalWidth && probe.naturalHeight) {
+          wrap.style.aspectRatio = `${probe.naturalWidth} / ${probe.naturalHeight}`;
+        }
+        img.src = src;
+        img.onload = () => {
+          img.classList.add('loaded');
+          const container = img.closest('.photo-masonry, .masonry');
+          if (container) { const msn = msnInstances[container.id]; if (msn) msn.layout(); }
+        };
+      };
+      probe.onerror = () => { img.src = src; img.classList.add('loaded'); };
+      probe.src = src;
+    } else {
+      imgObserver.observe(img);
+    }
+  });
 }
 
 // ── CURSOR ──
